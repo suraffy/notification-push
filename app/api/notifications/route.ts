@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { sendEmail } from "@/lib/email";
 
 export async function GET() {
   try {
@@ -48,6 +49,30 @@ export async function POST(req: Request) {
         message,
       },
     });
+
+    // Fetch the user's email
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true }, // Only get the email
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Send an email if the delivery method is "Email"
+    if (deliveryMethod === "Email") {
+      await sendEmail(user.email, title, message);
+      return NextResponse.json(
+        {
+          notificationId: notification.id,
+          recipientEmail: user.email,
+          subject: title,
+          message: message,
+        },
+        { status: 201 }
+      );
+    }
 
     return NextResponse.json(notification, { status: 201 });
   } catch (error) {
