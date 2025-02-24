@@ -38,7 +38,7 @@ export default function Navbar() {
           </Link>
 
           {/* Navigation Links */}
-          <div className="hidden md:flex space-x-10">
+          {/* <div className="hidden md:flex space-x-10">
             <Link href="/" className="text-gray-700 hover:text-gray-900">
               Home
             </Link>
@@ -48,7 +48,7 @@ export default function Navbar() {
             <Link href="/contact" className="text-gray-700 hover:text-gray-900">
               Contact
             </Link>
-          </div>
+          </div> */}
 
           {/* Notification Bell */}
           <div className="relative flex items-center space-x-8">
@@ -115,15 +115,15 @@ export default function Navbar() {
                 <HeadlessMenu.Items className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-md py-2 ring-1 ring-black ring-opacity-5 focus:outline-none">
                   <HeadlessMenu.Item>
                     {({ active }) => (
-                      <div className="px-4 py-2 text-sm text-gray-700">
-                        John Doe
+                      <div className="px-4 pt-2 text-lg font-medium text-gray-700">
+                        Surafel A
                       </div>
                     )}
                   </HeadlessMenu.Item>
                   <HeadlessMenu.Item>
                     {({ active }) => (
-                      <div className="px-4 py-2 text-sm text-gray-500">
-                        @johndoe
+                      <div className="px-4 pb-2 text-sm text-gray-500">
+                        @surafela
                       </div>
                     )}
                   </HeadlessMenu.Item>
