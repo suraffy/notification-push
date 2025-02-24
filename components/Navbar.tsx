@@ -1,29 +1,43 @@
 "use client";
 
-import { useState } from "react";
-import { Bell, Menu, User, Check } from "lucide-react";
+import { Menu, User } from "lucide-react";
 import { Menu as HeadlessMenu, Transition } from "@headlessui/react";
+import NotificationDropdown from "./NotificationDropdown";
+
 import Link from "next/link";
 import Image from "next/image";
 import logo from "@/public/lml_logo.png";
+import { useEffect, useState } from "react";
+
+interface User {
+  userId: string;
+  name: string;
+  email: string;
+  notification: Notification[];
+}
 
 export default function Navbar() {
-  const [notifications, setNotifications] = useState([
-    { id: 1, message: "New comment on your post", unread: true },
-    { id: 2, message: "New follower", unread: true },
-  ]);
+  const [user, setUser] = useState<User | null>(null);
 
-  const markAsRead = (id: number) => {
-    setNotifications(
-      notifications.map((n) => (n.id === id ? { ...n, unread: false } : n))
-    );
-  };
+  useEffect(() => {
+    fetchUser();
+  }, []);
 
-  const unreadCount = notifications.filter((n) => n.unread).length;
+  async function fetchUser() {
+    try {
+      const res = await fetch(
+        "/api/users/6e70f555-7f02-4b4a-9817-cee5d974f6d4"
+      );
+      const data: User = await res.json();
+      setUser(data);
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    }
+  }
 
   return (
     <nav className="bg-white shadow fixed w-full z-10 top-0 left-0">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-4">
@@ -37,66 +51,8 @@ export default function Navbar() {
             <h1 className="text-2xl font-bold text-gray-800">LML Repair</h1>
           </Link>
 
-          {/* Navigation Links */}
-          {/* <div className="hidden md:flex space-x-10">
-            <Link href="/" className="text-gray-700 hover:text-gray-900">
-              Home
-            </Link>
-            <Link href="/about" className="text-gray-700 hover:text-gray-900">
-              About
-            </Link>
-            <Link href="/contact" className="text-gray-700 hover:text-gray-900">
-              Contact
-            </Link>
-          </div> */}
-
-          {/* Notification Bell */}
           <div className="relative flex items-center space-x-8">
-            <HeadlessMenu as="div" className="relative">
-              <HeadlessMenu.Button className="relative p-2 text-gray-600 hover:text-gray-900">
-                <Bell className="w-6 h-6" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5">
-                    {unreadCount}
-                  </span>
-                )}
-              </HeadlessMenu.Button>
-
-              <Transition
-                enter="transition ease-out duration-100"
-                enterFrom="transform opacity-0 scale-95"
-                enterTo="transform opacity-100 scale-100"
-                leave="transition ease-in duration-75"
-                leaveFrom="transform opacity-100 scale-100"
-                leaveTo="transform opacity-0 scale-95"
-              >
-                <HeadlessMenu.Items className="absolute right-0 mt-2 w-60 bg-white shadow-lg rounded-md py-2 ring-1 ring-black ring-opacity-5 focus:outline-none">
-                  {notifications.map((notification) => (
-                    <HeadlessMenu.Item key={notification.id}>
-                      {({ active }) => (
-                        <div
-                          className={`flex justify-between items-center px-4 py-2 text-sm text-gray-700 ${
-                            active ? "bg-gray-100" : ""
-                          }`}
-                        >
-                          <span
-                            className={notification.unread ? "font-bold" : ""}
-                          >
-                            {notification.message}
-                          </span>
-                          <button
-                            onClick={() => markAsRead(notification.id)}
-                            className="text-green-500 hover:text-green-700"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-                    </HeadlessMenu.Item>
-                  ))}
-                </HeadlessMenu.Items>
-              </Transition>
-            </HeadlessMenu>
+            <NotificationDropdown userId={user?.userId} />
 
             {/* Profile Dropdown */}
             <HeadlessMenu as="div" className="relative">
@@ -116,14 +72,14 @@ export default function Navbar() {
                   <HeadlessMenu.Item>
                     {({ active }) => (
                       <div className="px-4 pt-2 text-lg font-medium text-gray-700">
-                        Surafel A
+                        {user?.name}
                       </div>
                     )}
                   </HeadlessMenu.Item>
                   <HeadlessMenu.Item>
                     {({ active }) => (
                       <div className="px-4 pb-2 text-sm text-gray-500">
-                        @surafela
+                        @{user?.email.slice(0, 8)}
                       </div>
                     )}
                   </HeadlessMenu.Item>
