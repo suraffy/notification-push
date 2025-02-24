@@ -15,6 +15,7 @@ interface User {
   email: string;
   notification: Notification[];
 }
+const userId = "06e9ebad-2625-40f6-9ac6-4e39f9b4318b";
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
@@ -25,9 +26,7 @@ export default function Navbar() {
 
   async function fetchUser() {
     try {
-      const res = await fetch(
-        "/api/users/6e70f555-7f02-4b4a-9817-cee5d974f6d4"
-      );
+      const res = await fetch(`/api/users/${userId}`);
       const data: User = await res.json();
       setUser(data);
     } catch (error) {
@@ -52,7 +51,7 @@ export default function Navbar() {
           </Link>
 
           <div className="relative flex items-center space-x-8">
-            <NotificationDropdown userId={user?.userId} />
+            <NotificationDropdown userId={userId} />
 
             {/* Profile Dropdown */}
             <HeadlessMenu as="div" className="relative">

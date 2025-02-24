@@ -21,21 +21,16 @@ export default function NotificationDropdown({ userId }: Props) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
-  console.log(notifications);
-
   useEffect(() => {
-    fetchNotifications();
-  }, []);
+    if (userId) fetchNotifications();
+  }, [userId]);
 
   // Fetch notifications (filter only In-App notifications)
   async function fetchNotifications() {
     try {
-      const res = await fetch(
-        "/api/users/6e70f555-7f02-4b4a-9817-cee5d974f6d4/notifications"
-      );
+      const res = await fetch(`/api/users/${userId}/notifications`);
       const data: Notification[] = await res.json();
       setNotifications(data.filter((n) => n.deliveryMethod === "InApp"));
-      console.log(data);
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     }
@@ -43,9 +38,9 @@ export default function NotificationDropdown({ userId }: Props) {
 
   // Mark a single notification as read
   async function markAsRead(id: string) {
-    await fetch(`/api/notifications/${userId}/mark-read`, {
+    console.log("id: ", id);
+    await fetch(`/api/users/${userId}/notifications/${id}/mark-read`, {
       method: "PATCH",
-      body: JSON.stringify({ notificationId: id }),
     });
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
@@ -82,7 +77,7 @@ export default function NotificationDropdown({ userId }: Props) {
         )}
       </button>
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-96 bg-white shadow-lg rounded-xl p-4 border border-gray-200">
+        <div className="absolute -right-12 mt-3 w-96 bg-white shadow-lg rounded-xl p-4 border border-gray-200">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-lg font-semibold">Notifications</h3>
             <button
