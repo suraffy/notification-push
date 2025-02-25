@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Bell, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { socket } from "@/socket";
 
 interface Notification {
   id: string;
@@ -23,6 +24,14 @@ export default function NotificationDropdown({ userId }: Props) {
 
   useEffect(() => {
     if (userId) fetchNotifications();
+
+    socket.on("new-notification", (notification) =>
+      setNotifications((prev) => [notification, ...prev])
+    );
+
+    return () => {
+      socket.off("new-notification");
+    };
   }, [userId]);
 
   // Fetch notifications (filter only In-App notifications)
@@ -77,7 +86,7 @@ export default function NotificationDropdown({ userId }: Props) {
         )}
       </button>
       {isOpen && (
-        <div className="absolute -right-12 mt-3 w-96 bg-white shadow-lg rounded-xl p-4 border border-gray-200">
+        <div className="absolute -right-12 mt-3 w-96 bg-white shadow-lg rounded-xl p-4 border border-gray-200 max-h-[60vh] overflow-y-auto">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-lg font-semibold">Notifications</h3>
             <button
