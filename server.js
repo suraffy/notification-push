@@ -22,20 +22,20 @@ app.prepare().then(() => {
   io.on("connection", (socket) => {
     console.log("A user connected:", socket.id);
 
+    socket.on("join", (userId) => {
+      console.log(`User ${userId} joined room ${userId}`);
+      socket.join(userId);
+    });
+
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
     });
   });
 
-  // Store io globally
+  // Store io globally so API routes can access it
   global.io = io;
 
-  httpServer
-    .once("error", (err) => {
-      console.error(err);
-      process.exit(1);
-    })
-    .listen(port, () => {
-      console.log(`> Ready on http://${hostname}:${port}`);
-    });
+  httpServer.listen(port, () => {
+    console.log(`> Ready on http://${hostname}:${port}`);
+  });
 });
