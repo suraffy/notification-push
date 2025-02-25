@@ -1,31 +1,28 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
-import { NextApiResponse } from "next";
-
-export async function GET() {
-  try {
-    const notifications = await prisma.notification.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json(notifications, { status: 200 });
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
-  }
-}
 
 const validTypes = ["System", "Customer", "Internal"];
 const validDeliveryMethods = ["InApp", "Email", "Text"];
 
-export async function POST(req: Request, res: NextApiResponse) {
+export async function POST(req: Request) {
   try {
-    const { userId, type, deliveryMethod, title, message } = await req.json();
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (error) {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
 
-    // Validate type and deliveryMethod
+    const { userId, type, deliveryMethod, title, message } = requestBody;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
+    }
+
     if (!validTypes.includes(type)) {
       return NextResponse.json(
         { error: "Invalid notification type" },
@@ -40,48 +37,46 @@ export async function POST(req: Request, res: NextApiResponse) {
       );
     }
 
-    // Create a new notification
     const notification = await prisma.notification.create({
-      data: {
-        userId,
-        type,
-        deliveryMethod,
-        title,
-        message,
-      },
+      data: { userId, type, deliveryMethod, title, message },
     });
 
-    // Get the global io instance
     const io = (global as any).io;
-    if (io) {
-      console.log(`Sending notification to room: ${userId}`);
-      io.to(userId).emit("new_notification", notification);
-    } else {
-      console.error("Socket.IO instance not found.");
+    if (io && userId && deliveryMethod === "InApp") {
+      io.to(userId.toString()).emit("new_notification", notification);
     }
 
-    // Fetch the user's email
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { email: true }, // Only get the email
+      select: { email: true },
     });
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!user?.email) {
+      return NextResponse.json(
+        { error: "User email not found" },
+        { status: 400 }
+      );
     }
 
-    // Send an email if the delivery method is "Email"
     if (deliveryMethod === "Email") {
-      await sendEmail(user.email, title, message);
-      return NextResponse.json(
-        {
-          notificationId: notification.id,
-          recipientEmail: user.email,
-          subject: title,
-          message: message,
-        },
-        { status: 201 }
-      );
+      try {
+        await sendEmail(user.email, title, message);
+        return NextResponse.json(
+          {
+            notificationId: notification.id,
+            receiver: user.email,
+            subject: title,
+            body: message,
+          },
+          { status: 201 }
+        );
+      } catch (emailError) {
+        console.error("Failed to send email:", emailError);
+        return NextResponse.json(
+          { error: "Failed to send email" },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json(notification, { status: 201 });
