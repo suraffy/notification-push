@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { Bell, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { socket } from "@/socket";
+import moment from "moment";
+import logo from "@/public/lml_logo.png";
 
 interface Notification {
   id: string;
@@ -12,6 +14,7 @@ interface Notification {
   isRead: boolean;
   type: string;
   deliveryMethod: string;
+  createdAt: string;
 }
 
 interface Props {
@@ -30,12 +33,21 @@ export default function NotificationDropdown({ userId }: Props) {
 
     socket.on("new_notification", (newNotification) => {
       setNotifications((prev) => [newNotification, ...prev]);
+
+      Notification.requestPermission().then((perm) => {
+        if (perm === "granted") {
+          new Notification(newNotification.title, {
+            body: newNotification.message,
+            icon: "/lml_logo.png",
+          });
+        }
+      });
     });
 
     return () => {
       socket.off("new-notification");
     };
-  }, [userId, socket]);
+  }, [userId]);
 
   // Fetch notifications (filter only In-App notifications)
   async function fetchNotifications() {
@@ -110,7 +122,7 @@ export default function NotificationDropdown({ userId }: Props) {
                   key={notification.id}
                   className={cn(
                     "relative bg-gray-50 p-3 rounded-lg shadow flex flex-col border border-gray-200",
-                    !notification.isRead && "bg-blue-50"
+                    !notification.isRead && "bg-blue-100 border-blue-200"
                   )}
                 >
                   <p className="font-medium">{notification.title}</p>
@@ -118,7 +130,10 @@ export default function NotificationDropdown({ userId }: Props) {
                     {notification.message}
                   </p>
                   {notification.isRead === false && (
-                    <div className="flex justify-end items-center mt-3">
+                    <div className="flex justify-between items-center mt-3">
+                      <small className="text-gray-600 text-[15px]">
+                        {moment(notification.createdAt).fromNow()}
+                      </small>
                       <button
                         onClick={() => markAsRead(notification.id)}
                         className="text-xs text-gray-600 hover:text-gray-800"
