@@ -25,14 +25,17 @@ export default function NotificationDropdown({ userId }: Props) {
   useEffect(() => {
     if (userId) fetchNotifications();
 
-    socket.on("new-notification", (notification) =>
-      setNotifications((prev) => [notification, ...prev])
-    );
+    socket.emit("join", userId);
+    console.log(`Joining room: ${userId}`);
+
+    socket.on("new_notification", (newNotification) => {
+      setNotifications((prev) => [newNotification, ...prev]);
+    });
 
     return () => {
       socket.off("new-notification");
     };
-  }, [userId]);
+  }, [userId, socket]);
 
   // Fetch notifications (filter only In-App notifications)
   async function fetchNotifications() {
