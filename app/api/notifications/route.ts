@@ -51,9 +51,13 @@ export async function POST(req: Request, res: NextApiResponse) {
       },
     });
 
+    // Get the global io instance
     const io = (global as any).io;
     if (io) {
-      io.emit("new-notification", notification);
+      console.log(`Sending notification to room: ${userId}`);
+      io.to(userId).emit("new_notification", notification);
+    } else {
+      console.error("Socket.IO instance not found.");
     }
 
     // Fetch the user's email
