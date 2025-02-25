@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { NextApiResponse } from "next";
 
 export async function GET() {
   try {
@@ -20,7 +21,7 @@ export async function GET() {
 const validTypes = ["System", "Customer", "Internal"];
 const validDeliveryMethods = ["InApp", "Email", "Text"];
 
-export async function POST(req: Request) {
+export async function POST(req: Request, res: NextApiResponse) {
   try {
     const { userId, type, deliveryMethod, title, message } = await req.json();
 
@@ -49,6 +50,11 @@ export async function POST(req: Request) {
         message,
       },
     });
+
+    const io = (global as any).io;
+    if (io) {
+      io.emit("new-notification", notification);
+    }
 
     // Fetch the user's email
     const user = await prisma.user.findUnique({
