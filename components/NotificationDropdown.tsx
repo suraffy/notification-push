@@ -5,7 +5,6 @@ import { Bell, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { socket } from "@/socket";
 import moment from "moment";
-import logo from "@/public/lml_logo.png";
 
 interface Notification {
   id: string;
@@ -25,6 +24,8 @@ export default function NotificationDropdown({ userId }: Props) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
+  const notificationSound = new Audio("/notification.mp3");
+
   useEffect(() => {
     if (userId) fetchNotifications();
 
@@ -33,6 +34,8 @@ export default function NotificationDropdown({ userId }: Props) {
 
     socket.on("new_notification", (newNotification) => {
       setNotifications((prev) => [newNotification, ...prev]);
+
+      notificationSound.play();
 
       Notification.requestPermission().then((perm) => {
         if (perm === "granted") {
@@ -129,19 +132,20 @@ export default function NotificationDropdown({ userId }: Props) {
                   <p className="text-sm text-gray-700">
                     {notification.message}
                   </p>
-                  {notification.isRead === false && (
-                    <div className="flex justify-between items-center mt-3">
-                      <small className="text-gray-600 text-[15px]">
-                        {moment(notification.createdAt).fromNow()}
-                      </small>
+
+                  <div className="flex justify-between items-center mt-3">
+                    <small className="text-gray-500 font-medium text-[15px]">
+                      {moment(notification.createdAt).fromNow()}
+                    </small>
+                    {notification.isRead === false && (
                       <button
                         onClick={() => markAsRead(notification.id)}
                         className="text-xs text-gray-600 hover:text-gray-800"
                       >
                         Mark as read
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
                   <button
                     onClick={() => deleteNotification(notification.id)}
