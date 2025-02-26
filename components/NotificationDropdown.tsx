@@ -1,11 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bell, X } from "lucide-react";
+import {
+  Bell,
+  X,
+  MoreVertical,
+  Check,
+  SquareMinus,
+  MessageSquareX,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { socket } from "@/socket";
 import moment from "moment";
 import { ToastContainer, toast } from "react-toastify";
+import { Menu } from "@headlessui/react";
 
 interface Notification {
   id: string;
@@ -140,35 +148,63 @@ export default function NotificationDropdown({ userId }: Props) {
                 <div
                   key={notification.id}
                   className={cn(
-                    "relative bg-gray-50 p-3 rounded-lg shadow flex flex-col border border-gray-200",
-                    !notification.isRead && "bg-blue-100 border-blue-200"
+                    "relative bg-gray-50 p-4 rounded-lg shadow-md border border-gray-200 transition-all",
+                    !notification.isRead && "bg-blue-50 border-blue-300"
                   )}
                 >
-                  <p className="font-medium">{notification.title}</p>
-                  <p className="text-sm text-gray-700">
+                  {/* Dropdown Menu */}
+                  <Menu as="div" className="absolute top-2 right-2">
+                    <Menu.Button className="p-1 rounded-full hover:bg-gray-200 transition">
+                      <MoreVertical className="w-5 h-5 text-gray-600" />
+                    </Menu.Button>
+
+                    <Menu.Items className="absolute right-0 w-40 bg-white border border-gray-200 shadow-lg rounded-xl rounded-r-none overflow-hidden py-1 transition-all animate-fadeIn">
+                      {!notification.isRead && (
+                        <Menu.Item>
+                          {({ active }) => (
+                            <button
+                              onClick={() => markAsRead(notification.id)}
+                              className={`flex items-center w-full px-4 py-2 text-sm font-medium rounded-md transition ${
+                                active
+                                  ? "bg-blue-50 text-blue-600"
+                                  : "text-gray-700"
+                              }`}
+                            >
+                              Mark as Read
+                            </button>
+                          )}
+                        </Menu.Item>
+                      )}
+
+                      <hr />
+
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            onClick={() => deleteNotification(notification.id)}
+                            className={`flex items-center w-full px-4 py-2 text-sm font-medium rounded-md transition ${
+                              active ? "bg-red-50 text-red-600" : "text-red-500"
+                            }`}
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </Menu.Items>
+                  </Menu>
+
+                  <p className="font-medium text-gray-900">
+                    {notification.title}
+                  </p>
+                  <p className="text-sm text-gray-700 mt-1">
                     {notification.message}
                   </p>
 
-                  <div className="flex justify-between items-center mt-3">
-                    <small className="text-gray-500 font-medium text-[15px]">
+                  <div className="flex justify-between items-center mt-3 text-gray-500">
+                    <small className="text-sm">
                       {moment(notification.createdAt).fromNow()}
                     </small>
-                    {notification.isRead === false && (
-                      <button
-                        onClick={() => markAsRead(notification.id)}
-                        className="text-xs text-gray-600 hover:text-gray-800"
-                      >
-                        Mark as read
-                      </button>
-                    )}
                   </div>
-
-                  <button
-                    onClick={() => deleteNotification(notification.id)}
-                    className="absolute right-3 text-red-700 hover:text-red-600 bg-red-100 hover:bg-red-200 rounded p-0.5 transition-all"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
                 </div>
               ))
             )}
