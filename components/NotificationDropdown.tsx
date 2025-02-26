@@ -5,6 +5,7 @@ import { Bell, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { socket } from "@/socket";
 import moment from "moment";
+import { ToastContainer, toast } from "react-toastify";
 
 interface Notification {
   id: string;
@@ -35,14 +36,15 @@ export default function NotificationDropdown({ userId }: Props) {
     socket.on("new_notification", (newNotification) => {
       setNotifications((prev) => [newNotification, ...prev]);
 
-      notificationSound.play();
-
       Notification.requestPermission().then((perm) => {
         if (perm === "granted") {
           new Notification(newNotification.title, {
             body: newNotification.message,
             icon: "/lml_logo.png",
           });
+        } else {
+          notificationSound.play();
+          notify(newNotification.title, newNotification.message);
         }
       });
     });
@@ -52,8 +54,25 @@ export default function NotificationDropdown({ userId }: Props) {
     };
   }, [userId]);
 
-  // Fetch notifications (filter only In-App notifications)
-  async function fetchNotifications() {
+  const notify = (title: string, message: string) => {
+    toast(
+      <div>
+        <p className="font-bold">{title.slice(0, 20)}</p>
+        <p className="text-sm">
+          {message.length > 80 ? message.slice(0, 80) + "..." : message}
+        </p>
+      </div>,
+      {
+        autoClose: 5000,
+        position: "top-right",
+        type: "info",
+        theme: "colored",
+        // icon: false,
+      }
+    );
+  };
+
+  const fetchNotifications = async () => {
     try {
       const res = await fetch(`/api/users/${userId}/notifications`);
       const data: Notification[] = await res.json();
@@ -61,37 +80,34 @@ export default function NotificationDropdown({ userId }: Props) {
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     }
-  }
+  };
 
-  // Mark a single notification as read
-  async function markAsRead(id: string) {
-    console.log("id: ", id);
+  const markAsRead = async (id: string) => {
     await fetch(`/api/users/${userId}/notifications/${id}/mark-read`, {
       method: "PATCH",
     });
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
     );
-  }
+  };
 
-  // Mark all as read
-  async function markAllAsRead() {
+  const markAllAsRead = async () => {
     await fetch(`/api/users/${userId}/notifications/mark-all-read`, {
       method: "PATCH",
     });
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-  }
+  };
 
-  // Remove notification
-  async function deleteNotification(id: string) {
+  const deleteNotification = async (id: string) => {
     await fetch(`/api/users/${userId}/notifications/${id}`, {
       method: "DELETE",
     });
     setNotifications((prev) => prev.filter((n) => n.id !== id));
-  }
+  };
 
   return (
     <div className="relative">
+      <ToastContainer style={{ top: "72px" }} />
       <button
         className="relative p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition"
         onClick={() => setIsOpen(!isOpen)}
