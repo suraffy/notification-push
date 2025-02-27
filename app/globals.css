@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --toastify-color-info: #fef100;
+  --toastify-icon-color-info: var(--toastify-color-info);
+  --toastify-text-color-info: #374151;
+  --toastify-toast-background: #fef100;
+}
+
+.Toastify__close-button {
+  color: #465366;
+}
+
+.Toastify__close-button:hover,
+.Toastify__close-button:focus {
+  color: #262d38;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -26,4 +42,9 @@
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
   background: #d4d4d4;
+}
+
+body {
+  line-height: 1.5;
+  letter-spacing: 0.2px;
 }
