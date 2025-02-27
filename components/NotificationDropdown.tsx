@@ -1,19 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Bell,
-  X,
-  MoreVertical,
-  Check,
-  SquareMinus,
-  MessageSquareX,
-} from "lucide-react";
+import { Bell, MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { socket } from "@/socket";
 import moment from "moment";
 import { ToastContainer, toast } from "react-toastify";
-import { Menu } from "@headlessui/react";
+import { Menu, Transition } from "@headlessui/react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Notification {
   id: string;
@@ -31,7 +25,6 @@ interface Props {
 
 export default function NotificationDropdown({ userId }: Props) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
 
   const notificationSound = new Audio("/notification.mp3");
 
@@ -41,32 +34,18 @@ export default function NotificationDropdown({ userId }: Props) {
     socket.emit("join", userId);
     console.log(`Joining room: ${userId}`);
 
-    socket.on("new_notification", (newNotification) => {
-      setNotifications((prev) => [newNotification, ...prev]);
-
-      Notification.requestPermission().then((perm) => {
-        if (perm === "granted") {
-          new Notification(newNotification.title, {
-            body: newNotification.message,
-            icon: "/lml_logo.png",
-          });
-        } else {
-          notificationSound.play();
-          notify(newNotification.title, newNotification.message);
-        }
-      });
-    });
+    socket.on("new_notification", handleNewNotification);
 
     return () => {
-      socket.off("new-notification");
+      socket.off("new_notification", handleNewNotification); // Cleanup listener on unmount
     };
   }, [userId]);
 
   const notify = (title: string, message: string) => {
     toast(
       <div>
-        <p className="font-bold">{title.slice(0, 20)}</p>
-        <p className="text-sm">
+        <p className="font-bold text-gray-800">{title.slice(0, 20)}</p>
+        <p className="text-sm text-gray-700">
           {message.length > 80 ? message.slice(0, 80) + "..." : message}
         </p>
       </div>,
@@ -78,6 +57,27 @@ export default function NotificationDropdown({ userId }: Props) {
         // icon: false,
       }
     );
+  };
+
+  const handleNewNotification = (newNotification: Notification) => {
+    setNotifications((prev) => {
+      const existingIds = new Set(prev.map((n) => n.id));
+      return existingIds.has(newNotification.id)
+        ? prev
+        : [newNotification, ...prev];
+    });
+
+    Notification.requestPermission().then((perm) => {
+      if (perm === "granted") {
+        new Notification(newNotification.title, {
+          body: newNotification.message,
+          icon: "/lml_logo.png",
+        });
+      } else {
+        notificationSound.play();
+        notify(newNotification.title, newNotification.message);
+      }
+    });
   };
 
   const fetchNotifications = async () => {
@@ -114,103 +114,122 @@ export default function NotificationDropdown({ userId }: Props) {
   };
 
   return (
-    <div className="relative">
-      <ToastContainer style={{ top: "72px" }} />
-      <button
-        className="relative p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition"
-        onClick={() => setIsOpen(!isOpen)}
-      >
+    <Menu as="div" className="relative">
+      <Menu.Button className="relative p-2 text-gray-600 hover:text-gray-900 rounded-full border border-gray-300">
         <Bell className="w-6 h-6 text-gray-600" />
         {notifications.some((n) => !n.isRead) && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
             {notifications.filter((n) => !n.isRead).length}
           </span>
         )}
-      </button>
-      {isOpen && (
-        <div className="absolute -right-12 mt-3 w-96 bg-white shadow-lg rounded-xl p-4 border border-gray-200 max-h-[60vh] overflow-y-auto">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-lg font-semibold">Notifications</h3>
-            <button
-              onClick={markAllAsRead}
-              className="text-sm font-medium text-blue-600 hover:text-blue-700"
-            >
-              Mark all as read
-            </button>
-          </div>
-          <div className="space-y-3">
-            {notifications.length === 0 ? (
-              <p className="text-center text-gray-500 text-sm">
-                No notifications
-              </p>
-            ) : (
-              notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={cn(
-                    "relative bg-gray-50 p-4 rounded-lg shadow-md border border-gray-200 transition-all",
-                    !notification.isRead && "bg-blue-50 border-blue-300"
-                  )}
-                >
-                  {/* Dropdown Menu */}
-                  <Menu as="div" className="absolute top-2 right-2">
-                    <Menu.Button className="p-1 rounded-full hover:bg-gray-200 transition">
-                      <MoreVertical className="w-5 h-5 text-gray-600" />
-                    </Menu.Button>
+      </Menu.Button>
 
-                    <Menu.Items className="absolute right-0 w-40 bg-white border border-gray-200 shadow-lg rounded-xl rounded-r-none overflow-hidden py-1 transition-all animate-fadeIn">
-                      {!notification.isRead && (
-                        <Menu.Item>
-                          {({ active }) => (
-                            <button
-                              onClick={() => markAsRead(notification.id)}
-                              className={`flex items-center w-full px-4 py-2 text-sm font-medium rounded-md transition ${
-                                active
-                                  ? "bg-blue-50 text-blue-600"
-                                  : "text-gray-700"
-                              }`}
-                            >
-                              Mark as Read
-                            </button>
-                          )}
-                        </Menu.Item>
-                      )}
+      <ToastContainer style={{ top: "72px" }} />
 
-                      <hr />
-
-                      <Menu.Item>
-                        {({ active }) => (
-                          <button
-                            onClick={() => deleteNotification(notification.id)}
-                            className={`flex items-center w-full px-4 py-2 text-sm font-medium rounded-md transition ${
-                              active ? "bg-red-50 text-red-600" : "text-red-500"
-                            }`}
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </Menu.Item>
-                    </Menu.Items>
-                  </Menu>
-
-                  <p className="font-medium text-gray-900">
-                    {notification.title}
-                  </p>
-                  <p className="text-sm text-gray-700 mt-1">
-                    {notification.message}
-                  </p>
-
-                  <div className="flex justify-between items-center mt-3 text-gray-500">
-                    <small className="text-sm">
-                      {moment(notification.createdAt).fromNow()}
-                    </small>
-                  </div>
+      <Transition
+        leave="transition ease-out duration-75"
+        leaveFrom="transform opacity-100 scale-100"
+        leaveTo="transform opacity-0 scale-95"
+      >
+        <Menu.Items>
+          <Menu.Item>
+            <AnimatePresence>
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="absolute -right-12 mt-3 w-96 bg-white shadow-lg rounded-xl p-4 border border-gray-200 min-h-[280px] max-h-[60vh] overflow-y-auto"
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-lg font-semibold">Notifications</h3>
+                  <button
+                    onClick={markAllAsRead}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    Mark all as read
+                  </button>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+                <div className="space-y-3">
+                  {notifications.length === 0 ? (
+                    <p className="text-center text-gray-500 text-sm">
+                      No notifications
+                    </p>
+                  ) : (
+                    notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        className={cn(
+                          "relative bg-gray-50 p-4 rounded-lg shadow-md border border-gray-200 transition-all cursor-pointer",
+                          !notification.isRead && "bg-blue-50 border-blue-200"
+                        )}
+                      >
+                        {/* Dropdown Menu */}
+                        <Menu as="div" className="absolute top-2 right-2">
+                          <Menu.Button className="p-1 rounded-full hover:bg-gray-200 transition">
+                            <MoreVertical className="w-5 h-5 text-gray-600" />
+                          </Menu.Button>
+
+                          <Menu.Items className="absolute right-0 w-40 bg-white border border-gray-200 shadow-lg rounded-xl rounded-tr-none overflow-hidden py-1 transition-all animate-fadeIn">
+                            {!notification.isRead && (
+                              <Menu.Item>
+                                {({ active }) => (
+                                  <button
+                                    onClick={() => markAsRead(notification.id)}
+                                    className={`flex items-center w-full px-4 py-2 text-sm font-medium rounded-md transition ${
+                                      active
+                                        ? "bg-blue-50 text-blue-600"
+                                        : "text-gray-700"
+                                    }`}
+                                  >
+                                    Mark as Read
+                                  </button>
+                                )}
+                              </Menu.Item>
+                            )}
+
+                            <hr />
+
+                            <Menu.Item>
+                              {({ active }) => (
+                                <button
+                                  onClick={() =>
+                                    deleteNotification(notification.id)
+                                  }
+                                  className={`flex items-center w-full px-4 py-2 text-sm font-medium rounded-md transition ${
+                                    active
+                                      ? "bg-red-50 text-red-600"
+                                      : "text-red-500"
+                                  }`}
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </Menu.Item>
+                          </Menu.Items>
+                        </Menu>
+
+                        <p className="font-medium text-gray-900">
+                          {notification.title}
+                        </p>
+                        <p className="text-sm text-gray-700 mt-1">
+                          {notification.message}
+                        </p>
+
+                        <div className="flex justify-between items-center mt-3 text-gray-500">
+                          <small className="text-sm">
+                            {moment(notification.createdAt).fromNow()}
+                          </small>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </Menu.Item>
+        </Menu.Items>
+      </Transition>
+    </Menu>
   );
 }
